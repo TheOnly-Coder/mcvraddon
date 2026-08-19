@@ -1,0 +1,19 @@
+{
+  "itemGroup.lightsabersvr": "Lightsaber VR",
+  
+  "item.lightsabersvr.red_lightsaber": "Red Lightsaber",
+  "item.lightsabersvr.blue_lightsaber": "Blue Lightsaber",
+  "item.lightsabersvr.green_lightsaber": "Green Lightsaber",
+  "item.lightsabersvr.purple_lightsaber": "Purple Lightsaber",
+  "item.lightsabersvr.yellow_lightsaber": "Yellow Lightsaber",
+  "item.lightsabersvr.orange_lightsaber": "Orange Lightsaber",
+  "item.lightsabersvr.cyan_lightsaber": "Cyan Lightsaber",
+  "item.lightsabersvr.magenta_lightsaber": "Magenta Lightsaber",
+  "item.lightsabersvr.white_lightsaber": "White Lightsaber (Darksaber)",
+  "item.lightsabersvr.black_lightsaber": "Black Lightsaber (Void Saber)",
+  
+  "lightsabersvr.vr.enabled": "§aVR Mode Active - Lightsaber tracking enabled!",
+  "lightsabersvr.vr.disabled": "§7Standard Mode - Use in VR for full features",
+  "lightsabersvr.activated": "§e*hummm*",
+  "lightsabersvr.deactivated": "*click*"
+}
