@@ -1,35 +1,32 @@
-modLoader = "javafml"
-loaderVersion = "[44,)"
-license = "MIT"
+modLoader="javafml"
+loaderVersion="[49,)"
+license="MIT"
 
 [[mods]]
-modId = "lightsabersvr"
-version = "${version}"
-displayName = "LightsaberVR"
-authors = "TheOnl-Coder"
-description = '''
-Adds lightsabers to Minecraft with full Vivecraft VR support!
-Wield lightsabers in virtual reality with proper controller tracking.
-'''
-logoFile = "icon.png"
+modId="lightsabersvr"
+version="1.0.0"
+displayName="LightsaberVR"
+authors="TheOnl-Coder"
+description='''Adds lightsabers to Minecraft with full Vivecraft VR support! Wield lightsabers in virtual reality with proper controller tracking and haptic feedback.'''
+logoFile="icon.png"
 
 [[dependencies.lightsabersvr]]
-modId = "forge"
-mandatory = true
-versionRange = "[49,)"
-ordering = "NONE"
-side = "BOTH"
+modId="forge"
+mandatory=true
+versionRange="[49,)"
+ordering="NONE"
+side="BOTH"
 
 [[dependencies.lightsabersvr]]
-modId = "minecraft"
-mandatory = true
-versionRange = "[1.20.4,)"
-ordering = "NONE"
-side = "BOTH"
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.4,)"
+ordering="NONE"
+side="BOTH"
 
 [[dependencies.lightsabersvr]]
-modId = "vrapi"
-mandatory = false
-versionRange = "[3.0.12,)"
-ordering = "AFTER"
-side = "CLIENT"
+modId="vrapi"
+mandatory=false
+versionRange="[3.0.12,)"
+ordering="AFTER"
+side="CLIENT"
