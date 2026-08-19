@@ -1,0 +1,33 @@
+# Build output
+build/
+libs/
+run/
+.gradle/
+mcmodsrepo/
+
+# IDE
+.idea/
+*.iml
+*.iws
+.classpath
+.project
+.settings/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+
+# Logs
+*.log
+
+# Environment
+.env
+local.properties

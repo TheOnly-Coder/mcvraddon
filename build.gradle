@@ -1,0 +1,90 @@
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net' }
+        mavenCentral()
+    }
+    dependencies {
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '6.0.+', changing: true
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
+
+version = '1.0.0'
+group = 'com.theonl_coder.lightsabersvr'
+archivesBaseName = 'lightsabersvr'
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    mappings channel: 'official', version: '1.20.4'
+    
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            mods {
+                lightsabersvr {
+                    source sourceSets.main
+                }
+            }
+        }
+        
+        server {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            mods {
+                lightsabersvr {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}
+
+repositories {
+    maven { url = 'https://maven.minecraftforge.net' }
+    flatDir {
+        dirs 'lib'
+    }
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.4-49.0.30'
+    
+    // Vivecraft VR API dependency
+    implementation files('lib/vrapi-3.0.12-1.20.4-forge.jar')
+}
+
+jar {
+    manifest {
+        attributes([
+            "Specification-Title": "LightsaberVR",
+            "Specification-Vendor": "TheOnl-Coder",
+            "Specification-Version": "1.0",
+            "Implementation-Title": project.name,
+            "Implementation-Vendor": "TheOnl-Coder",
+            "Implementation-Version": version,
+            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+}
+
+jar.finalizedBy('reobfJar')
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/mcmodsrepo"
+        }
+    }
+}
