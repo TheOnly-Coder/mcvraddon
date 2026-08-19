@@ -1,5 +1,4 @@
 package net.minecraft.world.item;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.entity.Entity;
 public class Item {
@@ -7,8 +6,7 @@ public class Item {
         public Properties stacksTo(int i) { return this; }
         public Properties fireResistant() { return this; }
         public Properties tab(CreativeModeTab tab) { return this; }
-        public Properties food(FoodProperties food) { return this; }
-        public Properties durability(int i) { return this; }
+        public Properties rarity(Rarity r) { return this; }
     }
     public Item(Properties props) {}
     public int getUseDuration(ItemStack stack) { return 0; }
