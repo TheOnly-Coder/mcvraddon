@@ -1,303 +1,266 @@
 package com.theonl_coder.lightsabersvr.vr;
 
 import com.theonl_coder.lightsabersvr.item.LightsaberItem;
-import com.theonl_coder.lightsabersvr.item.ModItems;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
- * Handles VR integration for lightsabers using the Vivecraft VRAPI.
- * This class manages:
- * - Controller tracking and rendering
- * - VR-specific hit detection
- * - Haptic feedback for lightsaber impacts
- * - Controller-based activation
+ * VR Integration for LightsaberVR using Vivecraft VRAPI.
+ * 
+ * This class provides runtime VR support through reflection-based API access.
+ * All VR features gracefully degrade if VRAPI is not installed.
  */
 public class VRIntegration {
     
-    private static final Logger LOGGER = LogManager.getLogger("LightsaberVR");
+    private static boolean initialized = false;
     private static boolean vrApiAvailable = false;
-    private static Object vrapiInstance = null;
+    private static Object vraipInstance = null;
     
-    // VR state tracking
-    private static boolean isInVR = false;
-    private static Vec3 leftControllerPos = null;
-    private static Vec3 rightControllerPos = null;
-    private static Vec3 hmdPosition = null;
+    // VR state cache
+    private static boolean inVR = false;
     
-    // Haptic feedback settings
-    private static final float HIT_RUMBLE_STRENGTH = 1.0F;
-    private static final int HIT_RUMBLE_DURATION_MS = 100;
-    private static final float SWING_RUMBLE_STRENGTH = 0.3F;
+    // Haptic settings
+    public static final float HIT_RUMBLE = 1.0F;
+    public static final float SWING_RUMBLE = 0.4F;
+    public static final float ACTIVATE_RUMBLE = 0.7F;
     
     /**
-     * Initialize VR integration - attempts to load VRAPI
+     * Initialize VR integration (safe to call multiple times)
      */
     public static void init() {
+        if (initialized) return;
+        
         try {
-            // Try to load VRAPI classes
             Class<?> vraipClass = Class.forName("net.blf02.vrapi.common.VRAPI");
-            vrapiInstance = vraipClass.getMethod("getInstance").invoke(null);
-            vrApiAvailable = true;
-            LOGGER.info("Vivecraft VR API detected! Lightsaber VR features enabled.");
+            java.lang.reflect.Field instanceField = vraipClass.getField("VRAPIInstance");
+            vraipInstance = instanceField.get(null);
+            
+            if (vraipInstance != null) {
+                vrApiAvailable = true;
+                System.out.println("[LightsaberVR] ✓ Vivecraft VRAPI connected!");
+                
+                try {
+                    java.lang.reflect.Method getVersion = vraipInstance.getClass().getMethod("getVersionString");
+                    System.out.println("[LightsaberVR]   Version: " + getVersion.invoke(vraipInstance));
+                } catch (Exception ignored) {}
+            }
+        } catch (ClassNotFoundException e) {
+            System.out.println("[LightsaberVR] ℹ VRAPI not present - standard mode");
         } catch (Exception e) {
-            vrApiAvailable = false;
-            LOGGER.info("Vivecraft VR API not found. Running in standard mode.");
+            System.err.println("[LightsaberVR] ✗ VRAPI load failed: " + e.getMessage());
         }
+        
+        initialized = true;
     }
     
-    /**
-     * Client-side initialization for VR rendering
-     */
-    public static void initClient() {
-        if (vrApiAvailable) {
-            LOGGER.info("LightsaberVR client integration initialized");
-        }
-    }
+    public static boolean isVrApiAvailable() { return vrApiAvailable && vraipInstance != null; }
     
     /**
-     * Check if VR API is available
-     */
-    public static boolean isVrApiAvailable() {
-        return vrApiAvailable;
-    }
-    
-    /**
-     * Check if player is currently in VR mode
+     * Check if player is in VR mode
      */
     public static boolean isPlayerInVR(Player player) {
-        if (!vrApiAvailable || vrapiInstance == null) return false;
+        if (!isVrApiAvailable()) return false;
         
         try {
-            // Attempt to get VR data through reflection
-            Class<?> vraipClass = vrapiInstance.getClass();
-            Object vrData = vraipClass.getMethod("getVRData").invoke(vrapiInstance);
-            
-            if (vrData != null) {
-                // Check if VR is active
-                Boolean isActive = (Boolean) vrData.getClass().getMethod("isInVR").invoke(vrData);
-                return isActive != null && isActive;
-            }
+            java.lang.reflect.Method m = vraipInstance.getClass().getMethod("playerInVR", Player.class);
+            Boolean result = (Boolean) m.invoke(vraipInstance, player);
+            return Boolean.TRUE.equals(result);
         } catch (Exception e) {
-            // Silently fail if API calls don't work
+            return false;
         }
-        return false;
     }
     
     /**
-     * Get controller position for VR hit detection
+     * Get controller position (right hand = true)
      */
-    public static Vec3 getControllerPosition(Player player, boolean rightHand) {
-        if (!vrApiAvailable || !isPlayerInVR(player)) {
+    public static Vec3 getControllerPos(Player player, boolean rightHand) {
+        if (!isVrApiAvailable() || !isPlayerInVR(player)) return null;
+        
+        try {
+            java.lang.reflect.Method getVRPlayer = vraipInstance.getClass().getMethod("getVRPlayer", Player.class);
+            Object vrPlayer = getVRPlayer.invoke(vraipInstance, player);
+            
+            if (vrPlayer == null) return null;
+            
+            String methodName = rightHand ? "getController0" : "getController1";
+            java.lang.reflect.Method getCtrl = vrPlayer.getClass().getMethod(methodName);
+            Object ctrlData = getCtrl.invoke(vrPlayer);
+            
+            if (ctrlData == null) return null;
+            
+            java.lang.reflect.Method getPos = ctrlData.getClass().getMethod("position");
+            return (Vec3) getPos.invoke(ctrlData);
+        } catch (Exception e) {
             return null;
         }
-        
-        try {
-            Class<?> vraipClass = vrapiInstance.getClass();
-            Object vrData = vraipClass.getMethod("getVRData").invoke(vrapiInstance);
-            
-            if (vrData != null) {
-                // Get controller position based on hand
-                Object controllerData;
-                if (rightHand) {
-                    controllerData = vrData.getClass().getMethod("getController0").invoke(vrData);
-                } else {
-                    controllerData = vrData.getClass().getMethod("getController1").invoke(vrData);
-                }
-                
-                if (controllerData != null) {
-                    double x = (Double) controllerData.getClass().getMethod("getX").invoke(controllerData);
-                    double y = (Double) controllerData.getClass().getMethod("getY").invoke(controllerData);
-                    double z = (Double) controllerData.getClass().getMethod("getZ").invoke(controllerData);
-                    
-                    return new Vec3(x, y, z);
-                }
-            }
-        } catch (Exception e) {
-            // Return null on failure
-        }
-        return null;
     }
     
     /**
-     * Get controller direction/aim vector
+     * Get controller direction/aim
      */
-    public static Vec3 getControllerDirection(Player player, boolean rightHand) {
-        if (!vrApiAvailable || !isPlayerInVR(player)) {
-            return player.getLookAngle(); // Fallback to normal look angle
-        }
+    public static Vec3 getControllerDir(Player player, boolean rightHand) {
+        if (!isVrApiAvailable() || !isPlayerInVR(player)) return player.getLookAngle();
         
         try {
-            Class<?> vraipClass = vrapiInstance.getClass();
-            Object vrData = vraipClass.getMethod("getVRData").invoke(vrapiInstance);
+            java.lang.reflect.Method getVRPlayer = vraipInstance.getClass().getMethod("getVRPlayer", Player.class);
+            Object vrPlayer = getVRPlayer.invoke(vraipInstance, player);
             
-            if (vrData != null) {
-                Object controllerData;
-                if (rightHand) {
-                    controllerData = vrData.getClass().getMethod("getController0").invoke(vrData);
-                } else {
-                    controllerData = vrData.getClass().getMethod("getController1").invoke(vrData);
-                }
-                
-                if (controllerData != null) {
-                    double pitch = (Double) controllerData.getClass().getMethod("getPitch").invoke(controllerData);
-                    double yaw = (Double) controllerData.getClass().getMethod("getYaw").invoke(controllerData);
-                    
-                    // Convert to direction vector
-                    double x = -Math.sin(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch));
-                    double y = -Math.sin(Math.toRadians(pitch));
-                    double z = Math.cos(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch));
-                    
-                    return new Vec3(x, y, z).normalize();
-                }
-            }
+            if (vrPlayer == null) return player.getLookAngle();
+            
+            String methodName = rightHand ? "getController0" : "getController1";
+            java.lang.reflect.Method getCtrl = vrPlayer.getClass().getMethod(methodName);
+            Object ctrlData = getCtrl.invoke(vrPlayer);
+            
+            if (ctrlData == null) return player.getLookAngle();
+            
+            java.lang.reflect.Method getLook = ctrlData.getClass().getMethod("getLookAngle");
+            return (Vec3) getLook.invoke(ctrlData);
         } catch (Exception e) {
-            // Fall back to look angle
+            return player.getLookAngle();
         }
-        return player.getLookAngle();
     }
     
     /**
-     * Trigger haptic feedback on VR controllers
+     * Trigger haptic feedback on controller
      */
-    public static void triggerHapticFeedback(Player player, boolean rightHand, 
-                                             float strength, int durationMs) {
-        if (!vrApiAvailable || !isPlayerInVR(player)) return;
+    public static void triggerHaptics(Player player, int controller, float strength, int durationMs) {
+        if (!isVrApiAvailable() || !isPlayerInVR(player)) return;
         
         try {
-            Class<?> vraipClass = vrapiInstance.getClass();
-            
-            // Call rumble method if available
+            // Try ServerPlayer version first
             try {
-                vraipClass.getMethod("triggerHapticFeedback", Player.class, boolean.class, float.class, int.class)
-                    .invoke(vrapiInstance, player, rightHand, strength, durationMs);
+                java.lang.reflect.Method m = vraipInstance.getClass().getMethod(
+                    "triggerHapticPulse", int.class, float.class, 
+                    net.minecraft.server.level.ServerPlayer.class
+                );
+                
+                if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
+                    m.invoke(vraipInstance, controller, strength, sp);
+                }
             } catch (NoSuchMethodException e) {
-                // Try alternative method name
-                try {
-                    vraipClass.getMethod("rumbleController", Player.class, boolean.class, float.class, int.class)
-                        .invoke(vrapiInstance, player, rightHand, strength, durationMs);
-                } catch (NoSuchMethodException e2) {
-                    LOGGER.debug("Haptic feedback method not found in VRAPI");
+                // Try version with position params
+                java.lang.reflect.Method m = vraipInstance.getClass().getMethod(
+                    "triggerHapticPulse", int.class, float.class, 
+                    float.class, float.class, float.class,
+                    net.minecraft.server.level.ServerPlayer.class
+                );
+                
+                if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
+                    Vec3 pos = player.position();
+                    m.invoke(vraipInstance, controller, strength, 
+                        (float)pos.x, (float)pos.y, (float)pos.z, sp);
                 }
             }
         } catch (Exception e) {
-            LOGGER.debug("Failed to trigger haptic feedback: " + e.getMessage());
+            System.err.println("[LightsaberVR] Haptic fail: " + e.getMessage());
         }
     }
+    
+    /**
+     * Check seated mode
+     */
+    public static boolean isSeated(Player player) {
+        if (!isVrApiAvailable()) return false;
+        
+        try {
+            java.lang.reflect.Method m = vraipInstance.getClass().getMethod("isSeated", Player.class);
+            Boolean r = (Boolean) m.invoke(vraipInstance, player);
+            return Boolean.TRUE.equals(r);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Check left-handed mode
+     */
+    public static boolean isLeftHanded(Player player) {
+        if (!isVrApiAvailable()) return false;
+        
+        try {
+            java.lang.reflect.Method m = vraipInstance.getClass().getMethod("isLeftHanded", Player.class);
+            Boolean r = (Boolean) m.invoke(vraipInstance, player);
+            return Boolean.TRUE.equals(r);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    // ==================== EVENT HANDLERS ====================
     
     @SubscribeEvent
-    public void onPlayerTick(TickEvent.PlayerTickEvent event) {
+    public void onTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         
-        Player player = event.player;
+        Player p = (Player) event.entity;
+        inVR = isPlayerInVR(p);
         
-        // Update VR state each tick
-        updateVRState(player);
-        
-        // Handle VR-specific lightsaber behavior
-        if (isVrApiAvailable() && isPlayerInVR(player)) {
-            handleVRBehavior(player);
+        // Apply VR reach extension to held lightsabers
+        if (inVR) {
+            applyVRReach(p);
         }
     }
     
-    private void updateVRState(Player player) {
-        if (!vrApiAvailable) return;
+    private void applyVRReach(Player p) {
+        ItemStack main = p.getMainHandItem();
+        ItemStack off = p.getOffhandItem();
         
-        isInVR = isPlayerInVR(player);
-        
-        if (isInVR) {
-            rightControllerPos = getControllerPosition(player, true);
-            leftControllerPos = getControllerPosition(player, false);
+        if (main.getItem() instanceof LightsaberItem li) {
+            li.setVRReachExtension(2.0); // 2 extra blocks in VR
+        }
+        if (off.getItem() instanceof LightsaberItem li) {
+            li.setVRReachExtension(2.0);
         }
     }
     
-    private void handleVRBehavior(Player player) {
-        ItemStack mainHandItem = player.getMainHandItem();
-        ItemStack offhandItem = player.getOffhandItem();
+    @SubscribeEvent  
+    public void onAttack(net.minecraftforge.event.entity.player.AttackEntityEvent event) {
+        if (!(event.getEntity() instanceof Player p)) return;
         
-        // Apply VR reach extension to lightsabers
-        if (mainHandItem.getItem() instanceof LightsaberItem lightsaber) {
-            // Extend reach when in VR for better gameplay feel
-            lightsaber.setVRControllerOffset(2.0); // 2 block extended reach in VR
-        }
-        
-        if (offhandItem.getItem() instanceof LightsaberItem lightsaber) {
-            lightsaber.setVRControllerOffset(2.0);
+        ItemStack weapon = p.getMainHandItem();
+        if (weapon.getItem() instanceof LightsaberItem) {
+            triggerHaptics(p, 0, HIT_RUMBLE, 100); // Right hand hit feedback
         }
     }
     
     @SubscribeEvent
-    public void onRightClick(PlayerInteractEvent.RightClickItem event) {
-        Player player = event.getEntity();
-        ItemStack item = event.getItemStack();
+    public void onInteract(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickItem event) {
+        Player p = (Player) event.entity;
+        ItemStack item = (ItemStack) event.itemStack;
         
-        if (!(item.getItem() instanceof LightsaberItem)) return;
-        
-        // In VR, provide stronger haptic feedback on activation
-        if (isVrApiAvailable() && isPlayerInVR(player)) {
-            triggerHapticFeedback(player, true, 0.7F, 150);
+        if (item.getItem() instanceof LightsaberItem && inVR) {
+            triggerHactics(p, 0, ACTIVATE_RUMBLE, 150); // Activation feedback
         }
     }
     
+    // Fix typo in previous method
+    private void triggerHactics(Player p, int c, float s, int d) { triggerHaptics(p, c, s, d); }
+    
+    // ==================== UTILITIES ====================
+    
     /**
-     * Called when a lightsaber hits something in VR to provide impact feedback
+     * Get debug info about VR state
      */
-    public static void onLightsaberHit(Player attacker, LivingEntity target) {
-        if (isVrApiAvailable && isPlayerInVR(attacker)) {
-            // Determine which hand has the lightsaber
-            boolean rightHand = attacker.getMainHandItem().getItem() instanceof LightsaberItem;
+    public static String getDebugInfo(Player p) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("LightsaberVR Debug:\n");
+        sb.append("  API Available: ").append(isVrApiAvailable()).append("\n");
+        sb.append("  In VR: ").append(isPlayerInVR(p)).append("\n");
+        
+        if (isPlayerInVR(p)) {
+            sb.append("  Seated: ").append(isSeated(p)).append("\n");
+            sb.append("  Left-Handed: ").append(isLeftHanded(p)).append("\n");
             
-            // Strong impact rumble
-            triggerHapticFeedback(attacker, rightHand, HIT_RUMBLE_STRENGTH, HIT_RUMBLE_DURATION_MS);
-        }
-    }
-    
-    /**
-     * Called during lightsaber swing for subtle feedback
-     */
-    public static void onLightsaberSwing(Player player) {
-        if (isVrApiAvailable && isPlayerInVR(player)) {
-            boolean rightHand = player.getMainHandItem().getItem() instanceof LightsaberItem;
-            triggerHapticFeedback(player, rightHand, SWING_RUMBLE_STRENGTH, 50);
-        }
-    }
-    
-    /**
-     * Simple 3D vector class for VR positions
-     */
-    public static class Vec3 {
-        public final double x, y, z;
-        
-        public Vec3(double x, double y, double z) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
+            Vec3 rCtrl = getControllerPos(p, true);
+            Vec3 lCtrl = getControllerPos(p, false);
+            
+            if (rCtrl != null) sb.append(String.format("  Right Ctrl: %.1f, %.1f, %.1f\n", rCtrl.x, rCtrl.y, rCtrl.z));
+            if (lCtrl != null) sb.append(String.format("  Left Ctrl: %.1f, %.1f, %.1f\n", lCtrl.x, lCtrl.y, lCtrl.z));
         }
         
-        public Vec3 add(Vec3 other) {
-            return new Vec3(x + other.x, y + other.y, z + other.z);
-        }
-        
-        public Vec3 scale(double factor) {
-            return new Vec3(x * factor, y * factor, z * factor);
-        }
-        
-        public Vec3 normalize() {
-            double length = Math.sqrt(x*x + y*y + z*z);
-            if (length == 0) return new Vec3(0, 0, 0);
-            return new Vec3(x / length, y / length, z / length);
-        }
-        
-        public double distanceTo(Vec3 other) {
-            double dx = x - other.x;
-            double dy = y - other.y;
-            double dz = z - other.z;
-            return Math.sqrt(dx*dx + dy*dy + dz*dz);
-        }
+        return sb.toString();
     }
 }

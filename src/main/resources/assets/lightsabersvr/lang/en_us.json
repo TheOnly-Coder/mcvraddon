@@ -2,18 +2,33 @@
   "itemGroup.lightsabersvr": "Lightsaber VR",
   
   "item.lightsabersvr.red_lightsaber": "Red Lightsaber",
-  "item.lightsabersvr.blue_lightsaber": "Blue Lightsaber",
+  "item.lightsabersvr.blue_lightsaber": "Blue Lightsaber", 
   "item.lightsabersvr.green_lightsaber": "Green Lightsaber",
   "item.lightsabersvr.purple_lightsaber": "Purple Lightsaber",
   "item.lightsabersvr.yellow_lightsaber": "Yellow Lightsaber",
   "item.lightsabersvr.orange_lightsaber": "Orange Lightsaber",
   "item.lightsabersvr.cyan_lightsaber": "Cyan Lightsaber",
   "item.lightsabersvr.magenta_lightsaber": "Magenta Lightsaber",
-  "item.lightsabersvr.white_lightsaber": "White Lightsaber (Darksaber)",
-  "item.lightsabersvr.black_lightsaber": "Black Lightsaber (Void Saber)",
+  "item.lightsabersvr.white_lightsaber": "White Darksaber",
+  "item.lightsabersvr.black_lightsaber": "Black Void Saber",
   
-  "lightsabersvr.vr.enabled": "§aVR Mode Active - Lightsaber tracking enabled!",
-  "lightsabersvr.vr.disabled": "§7Standard Mode - Use in VR for full features",
-  "lightsabersvr.activated": "§e*hummm*",
-  "lightsabersvr.deactivated": "*click*"
+  "lightsabersvr.vr.enabled": "§a✓ VR Mode Active - Full controller tracking enabled!",
+  "lightsabersvr.vr.disabled": "§7Standard Mode - Install Vivecraft for VR features",
+  "lightsabersvr.activated": "§e*hummmm*",
+  "lightsabersvr.deactivated": "*click*",
+  
+  "lightsabersvr.tooltip.red": "§cSith Lord's weapon - Balanced power",
+  "lightsabersvr.tooltip.blue": "§9Jedi Guardian's blade - Reliable and strong",
+  "lightsabersvr.tooltip.green": "§aJedi Consular's saber - Elegant and wise",
+  "lightsabersvr.tooltip purple": "§5Mace Windu's color - Rare and deadly",
+  "lightsabersvr.tooltip.yellow": "§eTemple Guard's weapon - Quick strikes",
+  "lightsabersvr.tooltip.orange": "§6Custom crystal - Unique variant",
+  "lightsabersvr.tooltip.cyan": "§bCool-toned blade - Precise strikes",
+  "lightsabersvr.tooltip.magenta": "§dPower crystal - Devastating force",
+  "lightsabersvr.tooltip.white": "§f§lDARKSABER - §fLegendary Mandalorian artifact",
+  "lightsaberssr.tooltip.black": "§8§lVOID SABER - §8Ultimate power from the darkness",
+  
+  "lightsabersvr.vr.haptic.hit": "Controller rumble: Impact!",
+  "lightsabersvr.vr.haptic.swing": "Controller rumble: Swing",
+  "lightsabersvr.vr.haptic.activate": "Controller rumble: Activated"
 }
